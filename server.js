@@ -2,6 +2,7 @@ var express      = require('express'),
     passport     = require('passport'),
     bodyParser   = require('body-parser'),
     LdapStrategy = require('passport-ldapauth');
+const cors = require('cors')
 
 require('dotenv').config()
 
@@ -26,6 +27,7 @@ var OPTS = {
 port = process.env.PORT || 3000;
 
 var app = express();
+app.use(cors())
  
 passport.use(new LdapStrategy(OPTS));
  
@@ -34,8 +36,13 @@ app.use(bodyParser.urlencoded({extended: false}));
 app.use(passport.initialize());
  
 app.post('/login', passport.authenticate('ldapauth', {session: false}), function(req, res) {
-	res.send({ id: 1, username: 'test', password: 'test', firstName: 'Test', lastName: 'User' });
+	res.status(200).send({ id: 1, username: 'test', password: 'test', firstName: 'Test', lastName: 'User' });
     //res.send({status: 'ok'});	
+});
+
+app.post('/users/authenticate', (req, res) => {
+  res.send({ id: 1, username: 'test', password: 'test', firstName: 'Test', lastName: 'User' });
+  
 });
  
 app.listen(port);
