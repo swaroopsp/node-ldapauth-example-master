@@ -25,12 +25,12 @@ var OPTS = {
     searchBase: searchBase,
     searchFilter: searchFilter,
     //searchAttributes: ['displayName'],
-    tlsOptions: {
-      ca: [
-        fs.readFileSync('/etc/ipa/chain.crt'),
-        fs.readFileSync('/etc/ipa/ca.crt')
-      ]
-    }
+    // tlsOptions: {
+    //   ca: [
+    //     fs.readFileSync('/etc/ipa/chain.crt'),
+    //     fs.readFileSync('/etc/ipa/ca.crt')
+    //   ]
+    // }
 }
 };
 
@@ -52,18 +52,24 @@ app.post('/login', passport.authenticate('ldapauth', {session: false}), function
 });
 
 app.post('/fake',  function(req, res) {
-        console.log("111111111111111111" + JSON.stringify(req.params), req.body)
-        console.log("222222222222222" + req)
-        const user = { uidNumber: 1528652297, givenName: 'Test', sn: 'User', cn: 'Test User', krbPrincipalName: 'test@user.com'};
-        var expires = parseInt(moment().add(2, 'days').format("X"));
-        var token = jwt.encode({
-            exp: expires,
-            user_name: user.uidNumber,
-            full_name: user.cn,
-            mail: user.krbPrincipalName
-        }, app.get('jwtTokenSecret'));
+  
+  res.send({ id: 1, username: 'test', password: 'test', firstName: 'Test', lastName: 'User' });
+});
 
-        res.json({token: token, full_name: user.cn});
+
+app.post('/fakeToken',  function(req, res) {
+  console.log("111111111111111111" + JSON.stringify(req.params), req.body)
+  console.log("222222222222222" + req)
+  const user = { uidNumber: 1528652297, givenName: 'Test', sn: 'User', cn: 'Test User', krbPrincipalName: 'test@user.com'};
+  var expires = parseInt(moment().add(1, 'minute').format("X"));
+  var token = jwt.encode({
+      exp: expires,
+      user_name: user.uidNumber,
+      full_name: user.cn,
+      mail: user.krbPrincipalName
+  }, app.get('jwtTokenSecret'));
+
+  res.json({token: token, full_name: user.cn, expiry: expires});
 //res.send({status: 'ok'});
 });
 
@@ -85,6 +91,7 @@ app.post('/login2', function(req, res, next) {
 app.post('/loginOAuth', function(req, res, next) {
   passport.authenticate('ldapauth',{failureFlash: true, session: true} ,function(err, user, info) {
     console.log(err,user,info,456,bindDN,bindCredentials)
+    const expiry = moment().add(1, 'minute').unix();
     if (err) {
         console.log(err,user,info,123);
         res.status(401).send({ error: 'Wrong user or password'});
@@ -92,33 +99,26 @@ app.post('/loginOAuth', function(req, res, next) {
         console.log("There is some issues");
         res.status(500).send({ error: 'Unexpected Error'});
     } else {
-        var expires = parseInt(moment().add(2, 'days').format("X"));
         var token = jwt.encode({
-            exp: expires,
+            exp: expiry,
             user_name: user.uid,
             full_name: user.cn,
             mail: user.mail
         }, app.get('jwtTokenSecret'));
 
-        res.json({token: token, full_name: user.cn});
+        res.json({token: token, full_name: user.cn, expiry: expiry});
     }
   })(req, res, next);
 });
 
 app.post('/verify', function (req, res) {
 	var token = req.body.token;
-	console.log("23423423 v- " + JSON.stringify(req.body));
 	if (token) {
 		try {
-			var decoded = jwt.decode(token, "FCA_SECRET_KEY");
-
-			if (decoded.exp <= parseInt(moment().format("X"))) {
-				res.status(400).send({ error: 'Access token has expired'});
-			} else {
-				res.json(decoded);
-			}
+			  var decoded = jwt.decode(token, "FCA_SECRET_KEY");
+				res.status(200).json(decoded);
 		} catch (err) {
-			res.status(500).send({ error: 'Access token could not be decoded'});
+			res.status(401).send({ error: 'Access token could not be decoded'});
 		}
 	} else {
 		res.status(400).send({ error: 'Access token is missing'});
