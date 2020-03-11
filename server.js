@@ -34,7 +34,7 @@ var OPTS = {
 }
 };
 
-port = process.env.PORT || 6000;
+port = process.env.PORT || 3000;
 
 var app = express();
 
