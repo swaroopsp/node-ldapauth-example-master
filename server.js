@@ -3,6 +3,7 @@ var express      = require('express'),
     bodyParser   = require('body-parser'),
     LdapStrategy = require('passport-ldapauth');
     fs = require('fs');
+const cors = require('cors')
 var moment = require('moment');
 var jwt = require('jwt-simple');
 
@@ -37,7 +38,7 @@ var OPTS = {
 port = process.env.PORT || 3000;
 
 var app = express();
-
+app.use(cors());
 passport.use(new LdapStrategy(OPTS));
 
 app.use(bodyParser.json());
@@ -51,7 +52,7 @@ app.post('/login', passport.authenticate('ldapauth', {session: false}), function
     //res.send({status: 'ok'});
 });
 
-app.post('/fake',  function(req, res) {
+app.post('/fake',  cors(), function(req, res) {
   
   res.send({ id: 1, username: 'test', password: 'test', firstName: 'Test', lastName: 'User' });
 });
