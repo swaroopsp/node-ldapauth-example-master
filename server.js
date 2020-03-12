@@ -46,12 +46,6 @@ app.use(bodyParser.urlencoded({extended: true}));
 app.use(passport.initialize());
 app.set('jwtTokenSecret', "FCA_SECRET_KEY");
 
-app.post('/login', passport.authenticate('ldapauth', {session: false}), function(req, res) {
-        console.log("222222222222222" + req)
-        //res.send({ id: 1, username: 'test', password: 'test', firstName: 'Test', lastName: 'User' });
-    //res.send({status: 'ok'});
-});
-
 app.post('/fake',  cors(), function(req, res) {
   
   res.send({ id: 1, username: 'test', password: 'test', firstName: 'Test', lastName: 'User' });
@@ -59,8 +53,6 @@ app.post('/fake',  cors(), function(req, res) {
 
 
 app.post('/fakeToken',  function(req, res) {
-  console.log("111111111111111111" + JSON.stringify(req.params), req.body)
-  console.log("222222222222222" + req)
   const user = { uidNumber: 1528652297, givenName: 'Test', sn: 'User', cn: 'Test User', krbPrincipalName: 'test@user.com'};
   var expires = parseInt(moment().add(1, 'minute').format("X"));
   var token = jwt.encode({
@@ -71,21 +63,29 @@ app.post('/fakeToken',  function(req, res) {
   }, app.get('jwtTokenSecret'));
 
   res.json({token: token, full_name: user.cn, expiry: expires});
-//res.send({status: 'ok'});
 });
 
-app.post('/login2', function(req, res, next) {
+app.post('/login', function(req, res, next) {
   passport.authenticate('ldapauth',{failureFlash: true, session: true} ,function(err, user, info) {
     console.log(err,user,info,456,bindDN,bindCredentials)
-    if (err) { console.log(err,user,info,123); return next(err); }
-    if (!user) {
-// return res.redirect('/loginfail');
+    const expiry = moment().add(1, 'minute').unix();
+    if (err) { 
+      console.log(err,user,info,123); 
+      return next(err); 
     }
-//    req.logIn(user, function(err) {
-//      if (err) { return next(err); }
-      //return res.redirect('/users/' + user.username);
-//    });
-  })(req, res, next);
+    if (!user) {
+      res.status(401).send({ error: 'There is some issue'});
+    } else {
+      var token = jwt.encode({
+          exp: expiry,
+          user_name: user.uid,
+          full_name: user.cn,
+          mail: user.mail
+      }, app.get('jwtTokenSecret'));
+
+      res.json({token: token, full_name: user.cn, expiry: expiry});
+  }
+  }) (req, res, next);
 });
 
 
